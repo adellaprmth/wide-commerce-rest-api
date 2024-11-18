@@ -160,15 +160,20 @@ public class CartService {
         }
         var currentProductCarts = cart.getProductCarts();
 
+        boolean foundProducts = false;
         if (currentProductCarts != null) {
             for (var c : currentProductCarts) {
                 if (!c.getProduct().getId().equals(productId)) {
                     continue;
                 }
 
+                foundProducts = true;
+
                 c.setQuantity(quantity);
             }
         }
+
+        if (!foundProducts) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "product not found in cart");
 
         cart.setProductCarts(currentProductCarts);
 
@@ -180,6 +185,9 @@ public class CartService {
     public void checkout(User user) {
         var cart = cartRepository.getActive(user.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No Active Cart found"));
         cart.setStatus("completed");
+
+        if (cart.getProductCarts() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty.");
+
         for (var p: cart.getProductCarts()) {
             var prod = p.getProduct();
             if (prod.getStock() < p.getQuantity()) {
